@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HANNA BUSINESS — Administration</title>
+<style>
+  :root { --ink:#211735; --ink-soft:#4d4360; --surface:#f7f2e6; --surface-raised:#fff; --line:#e2d7bd; --berry:#8f2f45; --berry-soft:#f1dbe0; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--surface); color:var(--ink); font-family:system-ui,sans-serif; }
+  .wrap { max-width:900px; margin:0 auto; padding:24px 20px 60px; }
+  h1 { font-size:1.4rem; margin:0 0 20px; }
+  .login-box { max-width:340px; margin:80px auto; background:var(--surface-raised); border:1px solid var(--line); border-radius:14px; padding:26px; }
+  .login-box input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--line); margin-bottom:12px; }
+  button { cursor:pointer; font-family:inherit; }
+  .btn { background:var(--berry); color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:0.9rem; }
+  .btn-outline { background:none; border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:8px 14px; font-size:0.85rem; }
+  .tabs { display:flex; gap:8px; margin-bottom:20px; }
+  .tabs button { background:var(--surface-raised); border:1px solid var(--line); border-radius:999px; padding:8px 16px; font-size:0.85rem; }
+  .tabs button.active { background:var(--berry); color:#fff; border-color:var(--berry); }
+  .panel { display:none; } .panel.active { display:block; }
+  table { width:100%; border-collapse:collapse; background:var(--surface-raised); border-radius:10px; overflow:hidden; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); font-size:0.85rem; }
+  th { color:var(--ink-soft); font-weight:500; }
+  img.thumb { width:40px; height:40px; object-fit:cover; border-radius:6px; }
+  form.product-form { background:var(--surface-raised); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:24px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  form.product-form .full { grid-column:1/-1; }
+  form.product-form label { display:block; font-size:0.78rem; color:var(--ink-soft); margin-bottom:4px; }
+  form.product-form input, form.product-form select, form.product-form textarea { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-family:inherit; }
+  .row-actions button { font-size:0.78rem; margin-right:6px; background:none; border:none; text-decoration:underline; color:var(--ink-soft); }
+  .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+</style>
+</head>
+<body>
+
+<div class="login-box" id="loginBox">
+  <h1>Espace HANNA BUSINESS</h1>
+  <input type="password" id="loginPassword" placeholder="Mot de passe admin">
+  <button class="btn" id="loginBtn" style="width:100%;">Se connecter</button>
+  <p id="loginError" style="color:var(--berry); font-size:0.82rem; margin-top:10px;"></p>
+</div>
+
+<div class="wrap" id="adminWrap" style="display:none;">
+  <div class="top-bar">
+    <h1>Gestion HANNA BUSINESS</h1>
+    <button class="btn-outline" id="logoutBtn">Déconnexion</button>
+  </div>
+
+  <div class="tabs">
+    <button data-tab="products" class="active">Articles</button>
+    <button data-tab="orders">Commandes</button>
+  </div>
+
+  <div class="panel active" id="panelProducts">
+    <form class="product-form" id="productForm">
+      <input type="hidden" id="editId">
+      <div><label>Nom</label><input id="fName" required></div>
+      <div><label>Prix (GNF)</label><input id="fPrice" type="number" required></div>
+      <div><label>Catégorie</label>
+        <select id="fCat"><option value="femme">Femme</option><option value="homme">Homme</option><option value="enfant">Enfant</option></select>
+      </div>
+      <div><label>Photo</label><input id="fPhoto" type="file" accept="image/*"></div>
+      <div class="full"><label>Description</label><textarea id="fDesc" rows="2"></textarea></div>
+      <div class="full" style="display:flex; gap:10px;">
+        <button type="submit" class="btn">Enregistrer</button>
+        <button type="button" class="btn-outline" id="cancelEdit" style="display:none;">Annuler la modification</button>
+      </div>
+    </form>
+
+    <table id="productsTable">
+      <thead><tr><th></th><th>Nom</th><th>Catégorie</th><th>Prix</th><th></th></tr></thead>
+      <tbody id="productsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="panelOrders">
+    <table>
+      <thead><tr><th>Date</th><th>Client</th><th>Articles</th><th>Total</th><th>Statut</th></tr></thead>
+      <tbody id="ordersBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem("hanna_admin_token") || "";
+
+function fmt(n){ return n.toLocaleString('fr-FR') + " GNF"; }
+
+async function api(path, opts={}) {
+  opts.headers = opts.headers || {};
+  if (token) opts.headers.Authorization = "Bearer " + token;
+  const res = await fetch(path, opts);
+  if (res.status === 401) { logout(); throw new Error("Session expirée"); }
+  return res;
+}
+
+function showAdmin() {
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("adminWrap").style.display = "block";
+  loadProducts(); loadOrders();
+}
+function logout() {
+  token = ""; localStorage.removeItem("hanna_admin_token");
+  document.getElementById("loginBox").style.display = "block";
+  document.getElementById("adminWrap").style.display = "none";
+}
+
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  const password = document.getElementById("loginPassword").value;
+  const res = await fetch("/api/auth/login", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ password })
+  });
+  const data = await res.json();
+  if (!res.ok) { document.getElementById("loginError").textContent = data.error; return; }
+  token = data.token;
+  localStorage.setItem("hanna_admin_token", token);
+  showAdmin();
+});
+document.getElementById("logoutBtn").addEventListener("click", logout);
+
+document.querySelectorAll(".tabs button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active", b===btn));
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    document.getElementById("panel" + btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)).classList.add("active");
+  });
+});
+
+let productsCache = [];
+async function loadProducts() {
+  const res = await api("/api/products");
+  productsCache = await res.json();
+  const body = document.getElementById("productsBody");
+  body.innerHTML = productsCache.map(p => `
+    <tr>
+      <td>${p.image ? `<img class="thumb" src="${p.image}">` : "—"}</td>
+      <td>${p.name}</td>
+      <td>${p.cat}</td>
+      <td>${fmt(p.price)}</td>
+      <td class="row-actions">
+        <button data-edit="${p.id}">Modifier</button>
+        <button data-del="${p.id}">Supprimer</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("productsBody").addEventListener("click", async (e) => {
+  const editId = e.target.dataset.edit, delId = e.target.dataset.del;
+  if (editId) {
+    const p = productsCache.find(x=>x.id===editId);
+    document.getElementById("editId").value = p.id;
+    document.getElementById("fName").value = p.name;
+    document.getElementById("fPrice").value = p.price;
+    document.getElementById("fCat").value = p.cat;
+    document.getElementById("fDesc").value = p.desc || "";
+    document.getElementById("cancelEdit").style.display = "inline-block";
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  if (delId) {
+    if (!confirm("Supprimer cet article ?")) return;
+    await api("/api/products/" + delId, { method:"DELETE" });
+    loadProducts();
+  }
+});
+
+document.getElementById("cancelEdit").addEventListener("click", () => {
+  document.getElementById("productForm").reset();
+  document.getElementById("editId").value = "";
+  document.getElementById("cancelEdit").style.display = "none";
+});
+
+document.getElementById("productForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("editId").value;
+  const fd = new FormData();
+  fd.append("name", document.getElementById("fName").value);
+  fd.append("price", document.getElementById("fPrice").value);
+  fd.append("cat", document.getElementById("fCat").value);
+  fd.append("desc", document.getElementById("fDesc").value);
+  const photo = document.getElementById("fPhoto").files[0];
+  if (photo) fd.append("photo", photo);
+
+  const url = id ? "/api/products/" + id : "/api/products";
+  const method = id ? "PUT" : "POST";
+  const res = await api(url, { method, body: fd });
+  if (!res.ok) { alert("Erreur lors de l'enregistrement"); return; }
+
+  document.getElementById("productForm").reset();
+  document.getElementById("editId").value = "";
+  document.getElementById("cancelEdit").style.display = "none";
+  loadProducts();
+});
+
+async function loadOrders() {
+  const res = await api("/api/orders");
+  const orders = await res.json();
+  document.getElementById("ordersBody").innerHTML = orders.map(o => `
+    <tr>
+      <td>${new Date(o.createdAt).toLocaleString('fr-FR')}</td>
+      <td>${o.customer.name || "—"}<br><span style="color:var(--ink-soft);">${o.customer.phone||""}</span></td>
+      <td>${o.lines.map(l=>`${l.name} x${l.qty}`).join(", ")}</td>
+      <td>${fmt(o.total)}</td>
+      <td>${o.status}</td>
+    </tr>
+  `).join("");
+}
+
+if (token) showAdmin();
+</script>
+</body>
+</html>

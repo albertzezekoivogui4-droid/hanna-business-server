@@ -1,0 +1,14 @@
+{
+  "products": [
+    { "id": "f1", "cat": "femme", "name": "Robe pagne wax", "desc": "Coupe fluide, imprimé wax coloré", "price": 285000, "image": null },
+    { "id": "f2", "cat": "femme", "name": "Ensemble boubou brodé", "desc": "Broderie main, tissu bazin riche", "price": 420000, "image": null },
+    { "id": "f3", "cat": "femme", "name": "Tailleur chic", "desc": "Veste cintrée et jupe crayon", "price": 350000, "image": null },
+    { "id": "h1", "cat": "homme", "name": "Chemise wax imprimé", "desc": "Coton léger, motifs traditionnels", "price": 190000, "image": null },
+    { "id": "h2", "cat": "homme", "name": "Grand boubou complet", "desc": "Bazin brodé, 3 pièces", "price": 460000, "image": null },
+    { "id": "h3", "cat": "homme", "name": "Pantalon slim", "desc": "Toile résistante, coupe moderne", "price": 165000, "image": null },
+    { "id": "e1", "cat": "enfant", "name": "Robe fillette pagne", "desc": "Assortie au modèle Femme", "price": 120000, "image": null },
+    { "id": "e2", "cat": "enfant", "name": "Tenue garçon assortie", "desc": "Chemise + short, tissu wax", "price": 110000, "image": null },
+    { "id": "e3", "cat": "enfant", "name": "Ensemble bébé wax", "desc": "Doux, respirant, 0–2 ans", "price": 85000, "image": null }
+  ],
+  "orders": []
+}
